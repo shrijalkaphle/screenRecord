@@ -1,0 +1,5 @@
+.hovered {
+    outline: 6px solid red;
+    outline-offset: 0px; 
+}
+

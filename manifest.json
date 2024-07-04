@@ -1,0 +1,36 @@
+{
+  "name": "Screen Recorder",
+  "description": "Record your screen.",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["downloads", "tabs", "activeTab", "desktopCapture"],
+  "background": {
+    "service_worker": "background.js"  
+  },
+  "action": {
+    "default_popup": "popup.html",  
+    "default_icon": {
+      "16": "icons/icon.png",
+      "48": "icons/icon.png",
+      "128": "icons/icon.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["recorder.html", "styles.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

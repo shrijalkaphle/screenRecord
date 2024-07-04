@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* Inline CSS for styling */
+    body {
+      width: 250px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 30px;
+    }
+    
+  </style>
+</head>
+<body>
+  <!-- Heading -->
+  <h1>Record your Screen</h1>
+
+  <!-- Start Button with Tailwind CSS classes -->
+  <button id="startRecordingButton" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-5 rounded mb-4">
+    Start
+  </button>
+
+  <!-- Stop Button with Tailwind CSS classes -->
+  <button id="stopRecordingButton" class="w-full bg-red-500 hover:bg-red-700 text-white font-bold py-4 px-5 rounded">
+    Stop
+  </button>
+</body>
+<script src="popup.js"></script>
+</html>
