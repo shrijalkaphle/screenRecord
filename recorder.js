@@ -3,9 +3,9 @@ var chunks = [];
 var currentTabId = null;
 var puppeteerCode = null
 var actions = null
-var timer = 0
-const sheetURL = "https://docs.google.com/spreadsheets/d/1jyTM_GMmWx72Xd2ikXpzisu7TH6yvUqMgMmsm3aI2q8/edit?usp=sharing"
+const sheetURL = "https://docs.google.com/spreadsheets/d/1BWHF4pujjsp71zEBnTszRUsMAQeWwe4tPlDtNYRyKEY/edit?usp=sharing"
 const sheetId = sheetURL.split("/")[5];
+
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message.name == 'startRecording') {
@@ -50,13 +50,13 @@ function startRecording(_currentTabId) {
 
         mediaRecorder.ondataavailable = function (e) {
           if (e.data.size > 0) {
-            chunks.push(e.data);
-            takeScreenshot(e.data)
+            chunks.push(e.data)
           }
         };
 
+        mediaRecorder.onstart = startTimer()
+
         mediaRecorder.onstop = async function (e) {
-          clearInterval(screenshotInterval)
           // const blobFile = new Blob(chunks, { type: "video/webm" });
           // const url = URL.createObjectURL(blobFile);
 
@@ -69,19 +69,14 @@ function startRecording(_currentTabId) {
           //   console.log('Download started with ID: ', downloadId);
           // });
           // Stop all tracks of stream
-
           stream.getTracks().forEach(track => track.stop());
-
-          // await endRecording(currentTabId, chunks)
-
-
+          await endRecording(currentTabId, chunks)
           // window.close();
         };
 
         // mediaRecorder.onstop = endRecording(currentTabId)
 
         mediaRecorder.start();
-        let screenshotInterval = setInterval(takeScreenshot, 5000)
       }).finally(async () => {
         // After all setup, focus on previous tab (where the recording was requested)
         await chrome.tabs.update(currentTabId, { active: true, selected: true })
@@ -99,20 +94,29 @@ async function endRecording(currentTabId, chunks) {
   const fileURL = await uploadFileToS3(blobFile, fileName);
   const html = await getHTML(currentTabId, session_name);
   const parsedHtml = 'getParsedHtml';
-
   const _puppeteerCode = puppeteerCode || 'puppeteerCode';
   const _actions = actions || 'actions';
 
-  await addDataToGoogleSheets(sheetURL, websiteURL, fileURL, html, parsedHtml, _puppeteerCode, _actions);
+  // const screenshotURL = `https://deploysentinel-uploads.s3.amazonaws.com/${session_name}`
+  // takeScreenshot(session_name)
+  const screenshotURL = "sc shot"
+
+  await addDataToGoogleSheets(sheetURL, websiteURL, screenshotURL, fileURL, html, parsedHtml, _puppeteerCode, _actions);
 }
 
 
-async function addDataToGoogleSheets(sheetURL, currentURL, fileURL, html, parsedHtml, puppeteerCode, actions) {
+async function addDataToGoogleSheets(
+  sheetURL, 
+  currentURL, 
+  screenshotURL, 
+  fileURL, 
+  html, 
+  parsedHtml, 
+  puppeteerCode, 
+  actions ) {
 
-
-  // downloadTextFile(JSON.stringify({ sheetURL, currentURL, fileURL, html, parsedHtml, puppeteerCode, actions }));
-
-  const url = `https://script.google.com/macros/s/AKfycbx5-TjA5BKW7wwPOzZKgxs6wC9uaeqLwle9B4IUjIg8ZS8YZgXzf7NcIE5R72iceBr8eQ/exec?sheetUrl=${sheetURL}&screenshot=${fileURL}$video=${fileURL}&url=${currentURL}&fullHtml=${html}&parsedHtml=${parsedHtml}&puppeteerCode=${puppeteerCode}&actions=${actions}`
+  const url = `https://script.google.com/macros/s/AKfycbx5-TjA5BKW7wwPOzZKgxs6wC9uaeqLwle9B4IUjIg8ZS8YZgXzf7NcIE5R72iceBr8eQ/exec?sheetUrl=${sheetURL}&screenshot=${screenshotURL}&video=fileURL&url=${currentURL}&fullHtml=${html}&parsedHtml=${parsedHtml}&puppeteerCode=${puppeteerCode}&actions=${actions}`
+  console.log(url)
 
   const data = JSON.stringify({
     sheetURL,
@@ -128,18 +132,10 @@ async function addDataToGoogleSheets(sheetURL, currentURL, fileURL, html, parsed
       },
       body: data
     })
-    if (!response.ok) downloadTextFile(await response.text())
+    if (!response.ok) console.log(await response.text())
   } catch (error) {
-    downloadTextFile(JSON.stringify(error))
+    console.log(JSON.stringify(error))
   }
-}
-
-function downloadTextFile(text) {
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "mydata.txt";
-  link.click();
 }
 
 async function uploadFileToS3(file, fileName) {
@@ -153,7 +149,7 @@ async function uploadFileToS3(file, fileName) {
   })
 
   if (!response.ok) {
-    downloadTextFile(await response.text())
+    console.log(await response.text())
     return 'error'
   }
 
@@ -166,7 +162,7 @@ async function uploadFileToS3(file, fileName) {
     method: 'PUT',
     body: file
   })
-  if (!uploadResponse.ok) downloadTextFile(await response.text())
+  if (!uploadResponse.ok) console.log(await response.text())
 
   return fileURL || `https://deploysentinel-uploads.s3.amazonaws.com/${fileName}`
 }
@@ -194,7 +190,7 @@ async function getHTML(currentTabId, sessionId) {
   })
 
   if (!response.ok) {
-    downloadTextFile(await response.text())
+    console.log(await response.text())
     return 'error'
   }
 
@@ -207,9 +203,8 @@ async function getHTML(currentTabId, sessionId) {
     method: 'PUT',
     body: htmlBlob
   })
-  if (!uploadResponse.ok) downloadTextFile(JSON.stringify({ uploadResponse: await uploadResponse.text(), type: 'html' }))
+  if (!uploadResponse.ok) console.log(JSON.stringify({ uploadResponse: await uploadResponse.text(), type: 'html' }))
 
-  // downloadTextFile(JSON.stringify({data, presignedUrl, fileURL, type: 'html'}))
   return fileURL || `https://deploysentinel-uploads.s3.amazonaws.com/${fileName}`
 
 }
@@ -222,19 +217,99 @@ async function getParsedHtml(html) {
   })
 }
 
-function takeScreenshot(chunk) {
+async function takeScreenshot(sessionName) {
 
-  const blob = new Blob([chunks.pop()], { type: "video/webm" });
+  let screenshotData = []
+  let captureInterval
+  const totalTime = getTimer()
+  const blob = new Blob(chunks, { type: "video/webm" });
   const video = document.createElement('video');
   video.src = URL.createObjectURL(blob);
+  video.controls = true
+  video.height = 540
+  video.width = 960
+  document.body.appendChild(video);
 
-  // const canvas = document.createElement('canvas');
-  // canvas.width = video.videoWidth;
-  // canvas.height = video.videoHeight;
-  // const ctx = canvas.getContext('2d');
-  // ctx.drawImage(video, 0, 0);
+  const btn = document.createElement('button');
+  btn.innerHTML = 'Capture';
+  btn.onclick = function () {
+    // capture()
+    video.currentTime = 5
+  }
+  document.body.appendChild(btn);
 
-  // console.log('canvas', canvas.toDataURL('image/png'))
+  const capture = async function () {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL();
+    document.body.appendChild(canvas);
+    screenshotData.push({
+      timer: video.currentTime,
+      dataURL: data
+    });
+  }
+  video.onseeked = function () {
+    capture()
+  }
+  video.onended = function () {
+    clearInterval(captureInterval)
+    uploadScreenshots(screenshotData,sessionName)
+  }
 
-  console.log(chunk, chunks.pop(), URL.createObjectURL(blob))
+  captureInterval = setInterval(() => {
+    video.currentTime = video.currentTime + 1
+  },1000)
+  // video.currentTime = 0
+}
+
+function renameScreenshots(timer) {
+  const seconds = Number(timer)
+  const hours = Math.floor(seconds / 3600).toLocaleString('en-US', { minimumIntegerDigits: 2, useGrouping: false })
+  const minutes = Math.floor(seconds / 60).toLocaleString('en-US', { minimumIntegerDigits: 2, useGrouping: false })
+  const secondsLeft = (seconds % 60).toLocaleString('en-US', { minimumIntegerDigits: 2, useGrouping: false })
+  return `${hours}_${minutes}_${secondsLeft}.png`
+}
+
+async function uploadScreenshots(screenshotData,sessionName) {
+  screenshotData.forEach(async (screenshot, index) => {
+
+    // get presigend url
+    const fileName = `${sessionName}/${renameScreenshots(screenshot.timer)}`
+
+    const response = await fetch('https://o37o33jkad.execute-api.us-east-1.amazonaws.com/file-upload-link', {
+      method: 'POST',
+      body: JSON.stringify({
+        filename: fileName,
+        contentType: "image/png"
+      })
+    })
+    if (!response.ok) {
+      console.log(await response.text())
+      return 'error'
+    }
+
+    // upload file
+    const base64 = screenshot.dataURL.split(",")[1];
+    const decoded = atob(base64);
+    const arrayBuffer = new Uint8Array(decoded.length);
+    const uint8Array = new Uint8Array(arrayBuffer);
+
+    for (let i = 0; i < decoded.length; i++) {
+      uint8Array[i] = decoded.charCodeAt(i);
+    }
+    const blob = new Blob([uint8Array], { type: "image/png" });
+    const data = await response.json()
+    const presignedUrl = data.uploadUrl
+    console.log(URL.createObjectURL(blob))
+
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: blob
+    })
+    if (!uploadResponse.ok) console.log(JSON.stringify({ uploadResponse: await uploadResponse.text(), type: 'screenshot' }))
+
+  })
 }
