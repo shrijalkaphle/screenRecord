@@ -3,7 +3,7 @@
   "description": "Record your screen.",
   "version": "1.0",
   "manifest_version": 3,
-  "permissions": ["downloads", "tabs", "activeTab", "desktopCapture"],
+  "permissions": ["downloads", "tabs", "activeTab", "desktopCapture", "scripting"],
   "background": {
     "service_worker": "background.js"  
   },
